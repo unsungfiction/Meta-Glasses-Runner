@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <title>Meta Glasses Runner</title>
     <style>
         :root {
             --bg: #121212;
             --accent: #00ff9d;
             --danger: #ff3e3e;
-            --glass-white: rgba(255, 255, 255, 0.15);
+            --ui-btn: #333;
         }
 
         body {
@@ -20,89 +20,113 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             height: 100vh;
             overflow: hidden;
+            touch-action: manipulation;
         }
 
-        #game-wrapper {
+        #game-container {
             position: relative;
-            border: 4px solid #333;
-            background: #1a1a1a;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            width: 360px;
+            margin-top: 10px;
         }
 
         canvas {
+            background: #1a1a1a;
+            border: 2px solid #444;
             display: block;
-            cursor: none;
+            border-radius: 8px;
         }
 
-        #ui {
-            position: absolute;
-            top: 0; left: 0; width: 100%;
-            padding: 10px;
-            pointer-events: none;
+        /* D-PAD STYLES */
+        #controls {
+            display: grid;
+            grid-template-areas: 
+                ". up ."
+                "left . right"
+                ". down .";
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            width: 65px;
+            height: 65px;
+            background: var(--ui-btn);
+            border: 2px solid #555;
+            border-radius: 10px;
             display: flex;
-            justify-content: space-between;
-            box-sizing: border-box;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            user-select: none;
+            cursor: pointer;
+            transition: background 0.1s;
         }
 
+        .btn:active { background: var(--accent); color: black; }
+        .up { grid-area: up; }
+        .down { grid-area: down; }
+        .left { grid-area: left; }
+        .right { grid-area: right; }
+
+        /* UI OVERLAYS */
         .overlay {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.9);
-            padding: 30px;
+            background: rgba(0,0,0,0.95);
+            padding: 20px;
             border: 2px solid var(--accent);
             text-align: center;
-            min-width: 300px;
-            z-index: 100;
-        }
-
-        button {
-            background: var(--accent);
-            border: none;
-            padding: 12px 24px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 20px;
+            width: 80%;
+            z-index: 10;
+            border-radius: 10px;
         }
 
         .hidden { display: none; }
-        .tip { font-style: italic; color: #aaa; margin-top: 15px; font-size: 0.9em; }
+        .stat-bar { display: flex; justify-content: space-between; width: 360px; padding: 5px; font-weight: bold; color: var(--accent); }
+        .tip { font-size: 0.8em; color: #aaa; margin: 15px 0; line-height: 1.4; }
+        button.start-btn { background: var(--accent); border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <h2 style="margin-bottom: 10px; letter-spacing: 2px;">META GLASSES RUNNER</h2>
+    <div class="stat-bar">
+        <span>LEVEL: <span id="level-display">1</span></span>
+        <span>META GLASSES RUNNER</span>
+    </div>
 
-    <div id="game-wrapper">
-        <div id="ui">
-            <div>Level: <span id="level-display">1</span></div>
-            <div>STAY PRIVATE</div>
-        </div>
-
-        <!-- Screens -->
+    <div id="game-container">
+        <!-- Overlays -->
         <div id="start-screen" class="overlay">
-            <h3>OBJECTIVE: GET TO THE TOILET</h3>
-            <p>Don't let the Meta Glasses record you!</p>
-            <button onclick="startGame()">START MISSION</button>
+            <h3>GOAL: REACH THE 🚽</h3>
+            <p>Stay out of the white vision cones!</p>
+            <button class="start-btn" onclick="startGame()">START GAME</button>
         </div>
 
         <div id="fail-screen" class="overlay hidden">
             <h3 style="color: var(--danger)">SPOTTED!</h3>
-            <p id="fail-msg"></p>
-            <div class="tip" id="privacy-tip"></div>
-            <button onclick="retryLevel()">RETRY LEVEL</button>
+            <p class="tip" id="privacy-tip"></p>
+            <button class="start-btn" onclick="resetLevel()">TRY AGAIN</button>
         </div>
 
         <div id="win-screen" class="overlay hidden">
-            <h3 style="color: var(--accent)">SUCCESS!</h3>
-            <p>You made it to the restroom in private.</p>
-            <button onclick="nextLevel()">NEXT LEVEL</button>
+            <h3 style="color: var(--accent)">LEVEL CLEAR!</h3>
+            <p>You stayed private.</p>
+            <button class="start-btn" onclick="nextLevel()">CONTINUE</button>
         </div>
 
         <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- D-PAD -->
+    <div id="controls">
+        <div class="btn up" onmousedown="move('up')" onmouseup="stop()" ontouchstart="move('up')" ontouchend="stop()">▲</div>
+        <div class="btn left" onmousedown="move('left')" onmouseup="stop()" ontouchstart="move('left')" ontouchend="stop()">◀</div>
+        <div class="btn right" onmousedown="move('right')" onmouseup="stop()" ontouchstart="move('right')" ontouchend="stop()">▶</div>
+        <div class="btn down" onmousedown="move('down')" onmouseup="stop()" ontouchstart="move('down')" ontouchend="stop()">▼</div>
     </div>
 
     <script>
@@ -110,205 +134,195 @@
         const ctx = canvas.getContext('2d');
         const levelDisplay = document.getElementById('level-display');
 
-        // Game Configuration
-        const WIDTH = 400;
-        const HEIGHT = 600;
-        canvas.width = WIDTH;
-        canvas.height = HEIGHT;
+        canvas.width = 360;
+        canvas.height = 400;
 
-        let currentLevel = 1;
-        let player = { x: WIDTH/2, y: HEIGHT - 50, radius: 10 };
-        let glasses = [];
-        let toilet = { x: WIDTH/2, y: 40, size: 30 };
+        let level = 1;
         let isPlaying = false;
+        let moveDir = null;
+        let player = { x: 180, y: 360, radius: 10, speed: 3 };
+        let toilet = { x: 180, y: 40 };
+        let glasses = [];
 
-        const PRIVACY_TIPS = [
-            "Meta Glasses have a white LED that blinks when recording video.",
-            "If the LED light is covered, the glasses will automatically disable the camera.",
-            "Recording someone in a private space like a restroom is often a legal violation.",
-            "Be aware: meta glasses can stream live to Instagram or Facebook instantly."
+        const TIPS = [
+            "Meta Glasses have a 'Capture LED' that blinks when recording video.",
+            "Covering the camera sensor on Meta glasses often disables recording automatically.",
+            "Always look for the glowing white light on smart glasses before speaking freely.",
+            "Privacy tip: Recording in bathrooms is a crime in most regions."
         ];
 
-        // Level Definitions
-        function setupLevel(lvl) {
-            player.x = WIDTH / 2;
-            player.y = HEIGHT - 50;
-            glasses = [];
-            
-            if (lvl === 1) {
-                // One static glass in the middle
-                glasses.push(new Glass(WIDTH/2, HEIGHT/2, 0, 0));
-            } else if (lvl === 2) {
-                // Two glasses rotating
-                glasses.push(new Glass(100, HEIGHT/2, 0, 0.02));
-                glasses.push(new Glass(300, HEIGHT/2, Math.PI, 0.02));
-            } else if (lvl === 3) {
-                // Patrolling glass
-                glasses.push(new Glass(50, 200, 0, 0.01, {x1: 50, x2: 350, speed: 2}));
-                glasses.push(new Glass(350, 400, Math.PI, 0.01, {x1: 50, x2: 350, speed: -2}));
-            } else {
-                // Procedural difficulty for higher levels
-                for(let i=0; i < Math.min(lvl, 6); i++) {
-                    glasses.push(new Glass(
-                        Math.random() * WIDTH, 
-                        150 + (Math.random() * 300), 
-                        Math.random() * Math.PI * 2, 
-                        0.01 * lvl,
-                        Math.random() > 0.5 ? {x1: 50, x2: 350, speed: (Math.random() - 0.5) * lvl} : null
-                    ));
-                }
-            }
-        }
-
         class Glass {
-            constructor(x, y, angle, rotationSpeed, patrol = null) {
+            constructor(x, y, angle, rotSpeed, patrolDist = 0) {
                 this.x = x;
                 this.y = y;
                 this.angle = angle;
-                this.rotationSpeed = rotationSpeed;
-                this.patrol = patrol; // {x1, x2, speed}
-                this.coneLength = 150;
-                this.coneAngle = 0.8; // Width of vision field
+                this.rotSpeed = rotSpeed;
+                this.startX = x;
+                this.patrolDist = patrolDist;
+                this.patrolDir = 1;
+                this.coneLen = 140;
+                this.coneWidth = 0.7; // Vision angle
             }
 
             update() {
-                this.angle += this.rotationSpeed;
-                if (this.patrol) {
-                    this.x += this.patrol.speed;
-                    if (this.x > this.patrol.x2 || this.x < this.patrol.x1) this.patrol.speed *= -1;
+                this.angle += this.rotSpeed;
+                if (this.patrolDist > 0) {
+                    this.x += this.patrolDir * 1.2;
+                    if (Math.abs(this.x - this.startX) > this.patrolDist) this.patrolDir *= -1;
                 }
             }
 
             draw() {
-                // Draw Vision Cone
+                // Vision Cone
                 ctx.beginPath();
                 ctx.moveTo(this.x, this.y);
-                ctx.arc(this.x, this.y, this.coneLength, this.angle - this.coneAngle/2, this.angle + this.coneAngle/2);
-                ctx.closePath();
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.arc(this.x, this.y, this.coneLen, this.angle - this.coneWidth/2, this.angle + this.coneWidth/2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
                 ctx.fill();
 
-                // Draw Glasses Icon
-                ctx.font = "24px Arial";
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                
+                // Glasses Icon
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle + Math.PI/2);
-                ctx.fillText("🕶️", 0, 0);
+                ctx.font = "20px Arial";
+                ctx.fillText("🕶️", -12, 5);
                 
-                // Draw blinking recording LED
-                if (Math.floor(Date.now() / 300) % 2 === 0) {
+                // LED Light
+                if (Math.floor(Date.now() / 400) % 2 === 0) {
                     ctx.fillStyle = "white";
                     ctx.beginPath();
-                    ctx.arc(8, -5, 2, 0, Math.PI*2);
+                    ctx.arc(8, -2, 2, 0, Math.PI*2);
                     ctx.fill();
                 }
                 ctx.restore();
             }
 
-            checkCollision(px, py) {
+            hits(px, py) {
                 const dx = px - this.x;
                 const dy = py - this.y;
-                const distance = Math.sqrt(dx*dx + dy*dy);
-                
-                if (distance < this.coneLength) {
-                    let angleToPlayer = Math.atan2(dy, dx);
-                    // Normalize angles
-                    let diff = angleToPlayer - this.angle;
-                    while (diff < -Math.PI) diff += Math.PI * 2;
-                    while (diff > Math.PI) diff -= Math.PI * 2;
-                    
-                    if (Math.abs(diff) < this.coneAngle / 2) return true;
-                }
-                return false;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist > this.coneLen) return false;
+
+                let angleToPlayer = Math.atan2(dy, dx);
+                let diff = angleToPlayer - this.angle;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                return Math.abs(diff) < this.coneWidth/2;
             }
         }
 
-        // Game Loop
-        function draw() {
-            if (!isPlaying) return;
+        function initLevel() {
+            player.x = 180;
+            player.y = 360;
+            glasses = [];
             
+            // Re-balanced difficulty curve
+            if (level === 1) {
+                glasses.push(new Glass(180, 180, 0, 0.015));
+            } else if (level === 2) {
+                glasses.push(new Glass(100, 150, 0, 0.02));
+                glasses.push(new Glass(260, 250, Math.PI, 0.02));
+            } else if (level === 3) {
+                glasses.push(new Glass(180, 200, 0, 0.01, 80)); // Patrols
+            } else if (level === 4) {
+                glasses.push(new Glass(80, 120, 0, 0.025));
+                glasses.push(new Glass(280, 120, 0, -0.025));
+                glasses.push(new Glass(180, 260, Math.PI, 0.01));
+            } else {
+                // Procedural but slow
+                let count = Math.min(level - 1, 5);
+                for(let i=0; i<count; i++) {
+                    glasses.push(new Glass(
+                        Math.random() * 300 + 30, 
+                        100 + (i * 50), 
+                        Math.random() * 6, 
+                        0.01 + (Math.random() * 0.02),
+                        i % 2 === 0 ? 50 : 0
+                    ));
+                }
+            }
+        }
+
+        function move(dir) { moveDir = dir; }
+        function stop() { moveDir = null; }
+
+        function startGame() {
+            document.getElementById('start-screen').classList.add('hidden');
+            isPlaying = true;
+            initLevel();
+            loop();
+        }
+
+        function resetLevel() {
+            document.getElementById('fail-screen').classList.add('hidden');
+            isPlaying = true;
+            initLevel();
+        }
+
+        function nextLevel() {
+            level++;
+            levelDisplay.innerText = level;
+            document.getElementById('win-screen').classList.add('hidden');
+            isPlaying = true;
+            initLevel();
+        }
+
+        function loop() {
+            if (!isPlaying) return;
+
+            // Handle Movement
+            if (moveDir === 'up' && player.y > 0) player.y -= player.speed;
+            if (moveDir === 'down' && player.y < canvas.height) player.y += player.speed;
+            if (moveDir === 'left' && player.x > 0) player.x -= player.speed;
+            if (moveDir === 'right' && player.x < canvas.width) player.x += player.speed;
+
+            // Clear Canvas
             ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Draw Toilet
-            ctx.font = "40px Arial";
+            ctx.font = "30px Arial";
+            ctx.textAlign = "center";
             ctx.fillText("🚽", toilet.x, toilet.y);
 
-            // Draw Glasses
-            glasses.forEach(g => {
+            // Update & Draw Glasses
+            for (let g of glasses) {
                 g.update();
                 g.draw();
-                if (g.checkCollision(player.x, player.y)) {
-                    endGame(false);
+                if (g.hits(player.x, player.y)) {
+                    isPlaying = false;
+                    document.getElementById('fail-screen').classList.remove('hidden');
+                    document.getElementById('privacy-tip').innerText = TIPS[Math.floor(Math.random() * TIPS.length)];
+                    return;
                 }
-            });
+            }
 
             // Draw Player
             ctx.fillStyle = varColor('--accent');
             ctx.beginPath();
             ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2);
             ctx.fill();
-            ctx.strokeStyle = "white";
-            ctx.stroke();
 
-            // Win Condition
-            const distToToilet = Math.hypot(player.x - toilet.x, player.y - toilet.y);
-            if (distToToilet < 30) {
-                endGame(true);
+            // Check Win
+            if (Math.hypot(player.x - toilet.x, player.y - toilet.y) < 25) {
+                isPlaying = false;
+                document.getElementById('win-screen').classList.remove('hidden');
+                return;
             }
 
-            requestAnimationFrame(draw);
+            requestAnimationFrame(loop);
         }
 
-        // Movement
-        canvas.addEventListener('mousemove', (e) => {
-            if (!isPlaying) return;
-            const rect = canvas.getBoundingClientRect();
-            player.x = e.clientX - rect.left;
-            player.y = e.clientY - rect.top;
-        });
-
-        // Utils
         function varColor(name) { return getComputedStyle(document.documentElement).getPropertyValue(name); }
 
-        function startGame() {
-            document.getElementById('start-screen').classList.add('hidden');
-            isPlaying = true;
-            setupLevel(currentLevel);
-            draw();
-        }
-
-        function retryLevel() {
-            document.getElementById('fail-screen').classList.add('hidden');
-            isPlaying = true;
-            setupLevel(currentLevel);
-            draw();
-        }
-
-        function nextLevel() {
-            currentLevel++;
-            levelDisplay.innerText = currentLevel;
-            document.getElementById('win-screen').classList.add('hidden');
-            isPlaying = true;
-            setupLevel(currentLevel);
-            draw();
-        }
-
-        function endGame(win) {
-            isPlaying = false;
-            if (win) {
-                document.getElementById('win-screen').classList.remove('hidden');
-            } else {
-                document.getElementById('fail-screen').classList.remove('hidden');
-                document.getElementById('fail-msg').innerText = "You were caught by someone's POV!";
-                document.getElementById('privacy-tip').innerText = "Tip: " + PRIVACY_TIPS[Math.floor(Math.random() * PRIVACY_TIPS.length)];
-            }
-        }
-
-        setupLevel(1);
+        // Keyboard support for desktop
+        window.addEventListener('keydown', e => {
+            if (e.key === "ArrowUp") move('up');
+            if (e.key === "ArrowDown") move('down');
+            if (e.key === "ArrowLeft") move('left');
+            if (e.key === "ArrowRight") move('right');
+        });
+        window.addEventListener('keyup', stop);
     </script>
 </body>
 </html>
